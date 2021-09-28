@@ -80,17 +80,15 @@ end {
     if (-not $LoadedType) { New-FontResourceType }
 
     $fontRegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts'
-    $fontFileTypes = @{
-        '.fon' = ''
-        '.fnt' = ''
-        '.ttf' = ' (TrueType)'
-        '.ttc' = ' (TrueType)'
-        '.otf' = ' (OpenType)'
-    }
-
     $shellApp = New-Object -ComObject shell.application
     $fonts = $shellApp.NameSpace(0x14)
     $fontsFolder = $fonts.self.path
+
+    $fontFileTypes = @{
+        '.ttf' = ' (TrueType)'
+        '.otf' = ' (OpenType)'
+    }
+
     foreach ($fontFile in $fontFiles) {
         $folderObj = (New-Object -ComObject shell.application).namespace($fontFile.directoryname)
         $fileObj = $folderObj.Items().Item($fontFile.Name)
@@ -99,13 +97,14 @@ end {
         Copy-Item $fontFile.FullName -Destination $fontsFolder -Force
 
         $fontFinalPath = Join-Path $fontsFolder $fontFile.Name
-        $retVal = [FontResource.AddRemoveFonts]::AddFont($fontFinalPath)
+        $retVal = [FontResource.AddFonts]::AddFont($fontFinalPath)
 
         if ($retVal -eq 0) {
-            Write-Host "Font resource, '$($fontFile.FullName)', installation failed"
+            Write-Host "'$($fontFile.FullName)', installation failed"
         }
         else {
-            Write-Host "Font resource, '$($fontFile.Name)', installed successfully" -ForegroundColor Green
+            $fontNameForPrinting = -join $fontFile.Name[0..80]
+            Write-Host "'$($fontNameForPrinting)'" -ForegroundColor Green
             Set-ItemProperty -Path "$($fontRegistryPath)" -Name "$fontName$($fontFileTypes.item($fontFile.Extension))" -Value "$($fontFile.Name)" -Type STRING -Force
         }
     }
